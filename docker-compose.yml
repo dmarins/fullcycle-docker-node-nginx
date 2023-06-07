@@ -1,0 +1,52 @@
+version: '3'
+
+networks:
+  node-network:
+    driver: bridge
+
+services:
+
+  db: 
+    platform: linux/x86_64
+    image: mysql:5.7
+    command: --innodb-use-native-aio=0
+    container_name: db
+    restart: always
+    tty: true
+    volumes:
+      - ./mysql:/var/lib/mysql:rw
+    user: mysql
+    environment:
+      - MYSQL_DATABASE=nodedb
+      - MYSQL_PASSWORD=root
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - "3306:3306"
+    networks:
+      - node-network
+
+  app:
+    build:
+      context: ./node-app
+    container_name: app
+    command: sh -c "node index.js"
+    volumes:
+      - ./node-app:/usr/src/app
+    tty: true
+    networks:
+      - node-network
+    depends_on:
+      - db
+
+  nginx:
+    build:
+      context: ./nginx-proxy
+    container_name: nginx
+    tty: true
+    ports:
+      - "8080:80"
+    networks:
+      - node-network
+    depends_on:
+      - app
+
